@@ -6,7 +6,7 @@ __In this project I have created an infrastructure for the Weight Tracker applic
 using Microsoft Azure and Terraform.__
 
 Project environment:
-![week-4-project-env]()
+![week-3-project-bonus](https://user-images.githubusercontent.com/90269123/137646189-6268dd08-b165-4db2-b310-dd42b7940248.jpg)
 
 
 >To implement this infrastructure Ive used all as described in the picture above.
