@@ -23,7 +23,7 @@ Please read the requirements of the application.
 
 **_In addition the vm contains a script I wrote for setting up .env file,Okta application redirect URIs using Okta API and finally initialize the database and running the application as a service using pm2_** 
 
-__The database vm image already set up with postgres sql db, you can use the default database, or creating your own for best practice.__
+__The database vm image already set up with postgres sql db, you can use the default database, or create your own for best practice.__
 
 ## Deployment
 __To deploy the environment you can create your own .tfvars file.__
