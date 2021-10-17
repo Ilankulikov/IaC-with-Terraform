@@ -4,10 +4,7 @@ variable "location" {
 }
 
 variable "subnet_prefix" {
-  default = [
-    "16.0.1.0/24",
-    "16.0.2.0/24"
-  ]
+  default = "16.0.1.0/24"
 }
 
 variable "env_prefix" {
@@ -32,23 +29,12 @@ variable "app_vm_image_id" {
   description = "The image id of the app vm"
 }
 
-variable "db_vm_image_id" {
-  type        = string
-  description = "The image id of the db vm"
-}
-
 variable "vm_name" {
   type        = string
   description = "Name of virtual machine"
 }
 
 variable "app_vm_size" {
-  type        = string
-  description = "The virtual machine size"
-  default     = "Standard_B1ls"
-}
-
-variable "db_vm_size" {
   type        = string
   description = "The virtual machine size"
   default     = "Standard_B1ls"

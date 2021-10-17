@@ -17,7 +17,7 @@ provider "azurerm" {
 # Create a resource group
 
 resource "azurerm_resource_group" "rg" {
-  name     = "week_05_project"
+  name     = "week_05_project_Bonus"
   location = var.location
 }
 
@@ -30,14 +30,13 @@ resource "azurerm_virtual_network" "vnet" {
   resource_group_name = azurerm_resource_group.rg.name
 }
 
-# Create a subnet for the application and DB
+# Create a subnet for the application
 
 resource "azurerm_subnet" "subnet" {
-  count                = length(var.env_prefix)
-  name                 = "${var.env_prefix[count.index]}-subnet"
+  name                 = "app-subnet"
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = [var.subnet_prefix[count.index]]
+  address_prefixes     = [var.subnet_prefix]
 }
 
 # Create a public static IP
@@ -52,8 +51,7 @@ resource "azurerm_public_ip" "ip" {
 # Create a network security group for both app and db
 
 resource "azurerm_network_security_group" "nsg" {
-  count               = length(var.env_prefix)
-  name                = "${var.env_prefix[count.index]}-nsg"
+  name                = "app-nsg"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 }
@@ -61,9 +59,8 @@ resource "azurerm_network_security_group" "nsg" {
 # Associate the subnets to a network security group
 
 resource "azurerm_subnet_network_security_group_association" "subnet_association" {
-  count                     = length(azurerm_subnet.subnet)
-  subnet_id                 = azurerm_subnet.subnet[count.index].id
-  network_security_group_id = azurerm_network_security_group.nsg[count.index].id
+  subnet_id                 = azurerm_subnet.subnet.id
+  network_security_group_id = azurerm_network_security_group.nsg.id
   depends_on                = [module.application_vms]
 }
 
@@ -80,23 +77,7 @@ resource "azurerm_network_security_rule" "app_nsg_rule" {
   source_address_prefix       = "*"
   destination_address_prefix  = "*"
   resource_group_name         = azurerm_resource_group.rg.name
-  network_security_group_name = azurerm_network_security_group.nsg[0].name //0 is the index of the app nsg
-}
-
-# Create an inbound rule for db nsg
-
-resource "azurerm_network_security_rule" "db_nsg_rule" {
-  name                        = "port5432"
-  priority                    = 100
-  direction                   = "inbound"
-  access                      = "Allow"
-  protocol                    = "Tcp"
-  source_port_range           = "*"
-  destination_port_range      = 5432
-  source_address_prefix       = "*"
-  destination_address_prefix  = "*"
-  resource_group_name         = azurerm_resource_group.rg.name
-  network_security_group_name = azurerm_network_security_group.nsg[1].name //1 is the index of the db nsg
+  network_security_group_name = azurerm_network_security_group.nsg.name
 }
 
 # Create a load balancer for the VM's that running the application
@@ -171,7 +152,7 @@ module "application_vms" {
   count       = 2
   rg_name     = azurerm_resource_group.rg.name
   vm_name     = "app-vm${count.index + 1}"
-  subnet_id   = azurerm_subnet.subnet[0].id #0 is the index of the first subnet which was created for the app vms.
+  subnet_id   = azurerm_subnet.subnet.id 
   password    = var.password
   vm_image_id = var.app_vm_image_id
   av_set_id   = azurerm_availability_set.as.id
@@ -180,19 +161,44 @@ module "application_vms" {
   vm_size     = var.app_vm_size
 }
 
-# Create virtual machine for the database
+# Create managed postgresql database
 
-module "db_vm" {
-  source      = "./modules/vms"
-  rg_name     = azurerm_resource_group.rg.name
-  vm_name     = "db-vm"
-  subnet_id   = azurerm_subnet.subnet[1].id #1 is the index of the 2nd subnet which was created for the db vm.
-  password    = var.password
-  av_set_id   = null
-  vm_image_id = var.db_vm_image_id
-  location    = azurerm_resource_group.rg.location
-  username    = var.username
-  vm_size     = var.db_vm_size
+
+resource "azurerm_postgresql_server" "postgresql" {
+  name                = "wt-psqlserver"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  administrator_login          = var.pg_user
+  administrator_login_password = var.pg_password
+
+  sku_name   = "B_Gen5_1"
+  version    = "11"
+  storage_mb = 5120
+
+  backup_retention_days        = 7
+  geo_redundant_backup_enabled = false
+  auto_grow_enabled            = false
+
+  public_network_access_enabled = true
+  ssl_enforcement_enabled       = false
+}
+
+
+resource "azurerm_postgresql_database" "wt_db" {
+  name                = var.pg_database
+  resource_group_name = azurerm_resource_group.rg.name
+  server_name         = azurerm_postgresql_server.postgresql.name
+  charset             = "UTF8"
+  collation           = "English_United States.1252"
+}
+
+resource "azurerm_postgresql_firewall_rule" "firewall_rule" {
+  name                = "app"
+  resource_group_name = azurerm_resource_group.rg.name
+  server_name         = azurerm_postgresql_server.postgresql.name
+  start_ip_address    = azurerm_public_ip.ip.ip_address
+  end_ip_address      = azurerm_public_ip.ip.ip_address
 }
 
 # This extention runs script that stored in the vm image to set the .env in the app folder.
@@ -207,12 +213,18 @@ resource "azurerm_virtual_machine_extension" "app_vm_extension" {
 
   settings = <<SETTINGS
     {
-        "commandToExecute": "/home/ilan/setenv.sh ${azurerm_public_ip.ip.ip_address} ${module.db_vm.private_ip} ${var.pg_user} ${var.pg_database} ${var.pg_password}"
+        "commandToExecute": "/home/ilan/setenv.sh ${azurerm_public_ip.ip.ip_address} ${azurerm_postgresql_server.postgresql.name}.postgres.database.azure.com ${var.pg_user}@${azurerm_postgresql_server.postgresql.name} ${azurerm_postgresql_database.wt_db.name} ${var.pg_password}"
     }
-SETTINGS
-
+  SETTINGS
 
   tags = {
     environment = "Development"
   }
+
+  depends_on = [
+    azurerm_postgresql_database.wt_db,
+    azurerm_postgresql_firewall_rule.firewall_rule,
+    azurerm_postgresql_server.postgresql
+
+  ]
 }
