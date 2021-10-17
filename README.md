@@ -5,7 +5,8 @@
 __In this project I have created an infrastructure for the Weight Tracker application
 using Microsoft Azure and Terraform.__
 
-Project environment:
+__Project environment:__
+
 ![week-3-project-bonus](https://user-images.githubusercontent.com/90269123/137646189-6268dd08-b165-4db2-b310-dd42b7940248.jpg)
 
 
@@ -19,6 +20,7 @@ Project environment:
 __For this project I have created VM images one for the application__
 __The application vm image already contains the Node Weight Tracker app which you can find here:__
 >https://github.com/Ilankulikov/bootcamp-app
+
 Please read the requirements of the application.
 
 **_In addition the vm contains a script I wrote for setting up .env file,Okta application redirect URIs using Okta API and finally initialize the database and running the application as a service using pm2_** 
