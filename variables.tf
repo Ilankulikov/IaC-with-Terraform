@@ -26,7 +26,7 @@ variable "password" {
 
 variable "app_vm_image_id" {
   type        = string
-  description = "The image id of the app vm"
+  description = "The image resource id of the app vm"
 }
 
 variable "vm_name" {

@@ -163,7 +163,6 @@ module "application_vms" {
 
 # Create managed postgresql database
 
-
 resource "azurerm_postgresql_server" "postgresql" {
   name                = "wt-psqlserver"
   location            = azurerm_resource_group.rg.location
@@ -184,6 +183,7 @@ resource "azurerm_postgresql_server" "postgresql" {
   ssl_enforcement_enabled       = false
 }
 
+# Create new database
 
 resource "azurerm_postgresql_database" "wt_db" {
   name                = var.pg_database
@@ -192,6 +192,8 @@ resource "azurerm_postgresql_database" "wt_db" {
   charset             = "UTF8"
   collation           = "English_United States.1252"
 }
+
+# Create firewall rule so only the application servers can access to the database
 
 resource "azurerm_postgresql_firewall_rule" "firewall_rule" {
   name                = "app"
