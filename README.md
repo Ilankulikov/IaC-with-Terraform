@@ -47,6 +47,7 @@ __or insert the variables interactively.__
 __To deploy the enviroment follow these steps in the terminal:__
 
 1 . To initialize Terraform working directory run
+
     terraform init
 
 2 . To deploy the enviroment:
